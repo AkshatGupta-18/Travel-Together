@@ -1,0 +1,14 @@
+node_modules/
+.env
+dist/
+build/
+uploads/
+coverage/
+
+frontend/node_modules/
+backend/node_modules/
+
+frontend/.env
+backend/.env
+
+*.log
