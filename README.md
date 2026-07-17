@@ -44,31 +44,58 @@ A social travel platform where users can connect, share their travel experiences
 * Improved profile customization
 * Enhanced mobile responsiveness
 
-## ⚙️ Installation
+## ⚙️ Installation & Setup
 
-Clone the repository:
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/your-username/Travel-Together.git
 ```
 
-Navigate to the project:
+### 2. Navigate to the project
 
 ```bash
 cd Travel-Together
 ```
 
-Install dependencies:
+### 3. Install dependencies
+
+#### Backend
 
 ```bash
+cd backend
 npm install
 ```
 
-Start the application:
+#### Frontend
 
 ```bash
+cd ../frontend
+npm install
+```
+
+### 4. Configure Environment Variables
+
+Create a `.env` file inside the `backend` folder and add the required environment variables (MongoDB URI, JWT Secret, Cloudinary credentials, etc.).
+
+### 5. Run the Backend
+
+```bash
+cd backend
 npm start
 ```
+
+### 6. Run the Frontend
+
+Open a **new terminal** and run:
+
+```bash
+cd frontend
+npm run dev
+```
+
+The frontend and backend should now be running locally.
+
 
 ## 📷 Screenshots
 
