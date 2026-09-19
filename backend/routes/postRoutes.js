@@ -20,24 +20,17 @@ const storage = new CloudinaryStorage({
 const upload = multer({ storage });
 
 // ─── POST /api/posts ──────────────────────────────────────────────────────────
-router.post("/", protect, upload.array("photos", 10), async (req, res) => {
+// GET /api/posts — all posts except the logged-in user's, sorted by likes desc
+router.get("/", protect, async (req, res) => {
   try {
-    const { caption, location, mood } = req.body;
+    const posts = await Post.find({ user: { $ne: req.user._id } })
+      .populate("user", "name username avatar")
+      .sort({ createdAt: -1 });
 
-    const photoUrls = req.files.map(f => f.path);
-
-    const post = await Post.create({
-      user: req.user._id,
-      caption,
-      location,
-      mood,
-      photos: photoUrls,
-    });
-
-    res.status(201).json(post);
+    res.json(posts);
   } catch (err) {
-    console.error("Create post error:", err);
-    res.status(500).json({ message: "Failed to create post" });
+    console.error("Fetch all posts error:", err);
+    res.status(500).json({ message: "Failed to fetch posts" });
   }
 });
 
@@ -65,18 +58,56 @@ router.get("/mine", protect, async (req, res) => {
   }
 });
 
-// GET /api/posts — all posts, sorted by likes desc, with user info populated
-router.get("/", protect, async (req, res) => {
+// PATCH /api/posts/:id/like
+router.patch("/:id/like", protect, async (req, res) => {
   try {
-    const posts = await Post.find()
-      .populate("user", "name username avatar")
-      .sort({ createdAt: -1 });
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ message: "Post not found" });
 
-    res.json(posts);
+    const userId = req.user._id; // set by protect middleware
+    const alreadyLiked = post.likes.some(id => id.equals(userId));
+
+    if (alreadyLiked) {
+      post.likes.pull(userId);
+    } else {
+      post.likes.push(userId);
+    }
+
+    await post.save();
+
+    res.json({
+      likes: post.likes.length,
+      liked: !alreadyLiked,
+    });
   } catch (err) {
-    console.error("Fetch all posts error:", err);
-    res.status(500).json({ message: "Failed to fetch posts" });
+    console.error("Like toggle failed:", err);
+    res.status(500).json({ message: "Failed to update like" });
   }
 });
+
+// DELETE /api/posts/:id
+router.delete("/:id", protect, async function (req, res) {
+  try {
+    const post = await Post.findById(req.params.id);
+
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    // Check that the logged-in user owns the post
+    if (post.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    await post.deleteOne();
+
+    res.json({ message: "Post deleted successfully" });
+  } catch (err) {
+    console.error("Delete post error:", err);
+    res.status(500).json({ message: "Failed to delete post" });
+  }
+});
+
+
 
 export default router;

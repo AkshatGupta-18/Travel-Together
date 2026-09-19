@@ -153,7 +153,7 @@ useEffect(() => {
       const res = await axios.get(
         "http://localhost:5000/api/users/me",
         {
-          withCredentials: true, // ✅ THIS is the key fix
+          withCredentials: true, 
         }
       );
 

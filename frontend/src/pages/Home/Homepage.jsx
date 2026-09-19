@@ -2,8 +2,11 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import ProfileSidebar from "./ProfileSidebar";
 import Navbar from "./Navbar";
-import axios from "axios";
+import api from "../../api/axios"
 import TrendingPosts from "./TrendingPosts";
+import MyPosts from "./MyPosts";
+import CreateTrip from "../CreateTrip";
+
 
 // ─── STATIC DATA ──────────────────────────────────────────────────────────────
 const FEED_POSTS = [
@@ -127,7 +130,7 @@ export default function HomePage() {
   const setupProgress = Math.round((SETUP_STEPS.filter(s => s.done).length / SETUP_STEPS.length) * 100);
 
   useEffect(() => {
-    axios.get("http://localhost:5000/api/users/me", { withCredentials: true })
+    api.get("/users/me", { withCredentials: true })
       .then(res => {
         const d = res.data;
         setUser({
@@ -146,13 +149,13 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    axios.get("http://localhost:5000/api/users", { withCredentials: true })
+    api.get("/users", { withCredentials: true })
       .then(res => {
         setSuggestedBuddies(res.data.map(u => ({
           id: u._id,
           name: u.name ?? "Traveller",
           username: u.username ?? "",
-          avatar: u.avatar ?? `https://i.pravatar.cc/80?u=${u._id}`,
+          avatar: u.avatar || `https://i.pravatar.cc/80?u=${u._id}`,
           location: u.location ? `From ${u.location}` : "Somewhere exciting",
           match: Math.floor(Math.random() * 20) + 75,
           tags: u.travelStyles ?? [],
@@ -315,7 +318,7 @@ export default function HomePage() {
       )}
 
       {/* ── NAV ── */}
-      <Navbar user={user} />
+      <Navbar user={user} buddies={suggestedBuddies} />
 
       {/* ── LAYOUT ── */}
       <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-6 flex gap-6">
@@ -343,8 +346,8 @@ export default function HomePage() {
                   Hey {user.name.split(" ")[0]}, ready to <span className="gradient-text">explore?</span> 🌍
                 </h1>
                 <p className="text-sm text-white/45 max-w-md">
-                  Your profile is {setupProgress}% complete. Find travel buddies heading to{" "}
-                  <span className="text-amber-400/80">{user.dreamDestinations[0]}</span> and start your first trip.
+                   Find travel buddies heading to{" "}
+                  <span className="text-amber-400/80">{user.dreamDestinations[0]}</span> and start your trip.
                 </p>
               </div>
               <div className="flex gap-2.5 shrink-0">
@@ -438,6 +441,13 @@ export default function HomePage() {
             </div>
           )}
 
+          {/* ─ MY POSTS ─ */}
+          {activeTab === "myposts" && (
+            <div className="anim-scale-in">
+              <MyPosts currentUser={user} />
+            </div>
+          )}
+
           {/* ─ OPEN TRIPS ─ */}
           {activeTab === "trips" && (
             <div className="flex flex-col gap-4 anim-scale-in">
@@ -481,87 +491,10 @@ export default function HomePage() {
           )}
         </main>
 
-        {/* RIGHT SIDEBAR */}
-        <aside className="desktop-right w-64 shrink-0 sticky top-[76px] self-start flex flex-col gap-4 h-[calc(100vh-96px)] overflow-y-auto">
-
-          <div className="card p-4 anim-fade-up d2">
-            <p className="text-xs font-semibold text-white mb-3 flex items-center gap-2">Your dream list <span className="text-white/20">✦</span></p>
-            <div className="flex flex-col gap-2">
-              {user.dreamDestinations.map((dest, i) => (
-                <div key={i} className="flex items-center justify-between group cursor-pointer hover:bg-white/[0.04] rounded-xl px-2 py-1.5 transition-all -mx-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-display font-bold text-white/20">{String(i + 1).padStart(2, "0")}</span>
-                    <span className="text-sm text-white/70 group-hover:text-white transition-colors">{dest}</span>
-                  </div>
-                  <ChevronRightIcon />
-                </div>
-              ))}
-              <a href="/profile/edit" className="text-xs text-amber-400/50 hover:text-amber-400 transition-colors mt-1 flex items-center gap-1">
-                <PlusIcon /> Add destination
-              </a>
-            </div>
-          </div>
-
-          <div className="card p-4 anim-fade-up d3">
-            <p className="text-xs font-semibold text-white mb-3">Travel style</p>
-            <div className="flex flex-wrap gap-2 mb-3">
-              {user.travelStyle.map(tag => (
-                <span key={tag} className="text-xs px-3 py-1.5 rounded-full bg-amber-400/10 border border-amber-400/20 text-amber-400/80 font-medium">{tag}</span>
-              ))}
-            </div>
-            <a href="/profile/edit" className="text-xs text-white/25 hover:text-white/60 transition-colors">+ Add more styles</a>
-          </div>
-
-          <div className="card p-4 anim-fade-up d4">
-            <p className="text-xs font-semibold text-white mb-3">Live now 🟢</p>
-            <div className="flex flex-col gap-3">
-              {[
-                { avatar: "https://i.pravatar.cc/32?img=5", name: "Alex K.", action: "joined Bali trip", time: "2m" },
-                { avatar: "https://i.pravatar.cc/32?img=9", name: "Lena M.", action: "posted from Tokyo", time: "5m" },
-                { avatar: "https://i.pravatar.cc/32?img=12", name: "Dev P.", action: "matched with 3 buddies", time: "8m" },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center gap-2.5">
-                  <img src={item.avatar} alt={item.name} className="w-7 h-7 rounded-full shrink-0" />
-                  <p className="text-xs text-white/40 leading-snug">
-                    <span className="text-white/70 font-medium">{item.name}</span> {item.action}
-                  </p>
-                  <span className="text-[10px] text-white/20 ml-auto shrink-0">{item.time}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="card p-4 anim-fade-up d5" style={{ background: "linear-gradient(135deg, rgba(245,158,11,0.07), rgba(239,68,68,0.05))", borderColor: "rgba(245,158,11,0.15)" }}>
-            <p className="text-xs font-semibold text-amber-400 mb-1">📱 Get the app</p>
-            <p className="text-xs text-white/40 mb-3">Real-time buddy matching on the go</p>
-            <a href="/app" className="btn-primary text-xs py-2 block text-center">Download free</a>
-          </div>
-        </aside>
+        
       </div>
 
-      {/* MOBILE BOTTOM NAV */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-[#080808]/95 backdrop-blur-xl border-t border-white/[0.06]">
-        <div className="flex items-center justify-around px-2 py-3">
-          {[
-            { icon: "🧭", label: "Discover", href: "/" },
-            { icon: "🗺️", label: "Trips", href: "/trips" },
-            { icon: "➕", label: "", href: "/post", special: true },
-            { icon: "👥", label: "Buddies", href: "/buddies" },
-            { icon: "👤", label: "Profile", href: "/profile" },
-          ].map((item, i) =>
-            item.special ? (
-              <a key={i} href={item.href} className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-black shadow-lg shadow-amber-400/25 text-xl -mt-5">
-                {item.icon}
-              </a>
-            ) : (
-              <a key={i} href={item.href} className="flex flex-col items-center gap-1 px-3 py-1 text-white/40 hover:text-white transition-colors">
-                <span className="text-lg">{item.icon}</span>
-                <span className="text-[9px]">{item.label}</span>
-              </a>
-            )
-          )}
-        </div>
-      </div>
+      
     </div>
   );
 }

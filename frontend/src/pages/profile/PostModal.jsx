@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import axios from "axios"
 
 // ─── ICONS ────────────────────────────────────────────────────────────────────
 const HeartIcon = ({ filled }) => (
@@ -6,9 +7,9 @@ const HeartIcon = ({ filled }) => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
   </svg>
 );
-const CommentIcon = () => (
-  <svg className="w-5 h-5 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+const TrashIcon = () => (
+  <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9.5 7V5a1.5 1.5 0 011.5-1.5h2a1.5 1.5 0 011.5 1.5v2m-8 0h11l-.7 12.4a2 2 0 01-2 1.85H9.2a2 2 0 01-2-1.85L6.5 7z" />
   </svg>
 );
 const LocationPinIcon = () => (
@@ -39,22 +40,29 @@ const ImagesIcon = () => (
 
 // ─── MOOD CONFIG ──────────────────────────────────────────────────────────────
 const MOOD_CONFIG = {
-  adventurous: { emoji: "🧗", color: "from-orange-500/20 to-red-500/20",    border: "border-orange-400/30", text: "text-orange-300" },
-  relaxed:     { emoji: "🌊", color: "from-blue-500/20 to-cyan-500/20",     border: "border-blue-400/30",   text: "text-blue-300"   },
-  romantic:    { emoji: "🌹", color: "from-rose-500/20 to-pink-500/20",     border: "border-rose-400/30",   text: "text-rose-300"   },
-  cultural:    { emoji: "🏛️", color: "from-amber-500/20 to-yellow-500/20", border: "border-amber-400/30",  text: "text-amber-300"  },
-  foodie:      { emoji: "🍜", color: "from-green-500/20 to-emerald-500/20", border: "border-green-400/30",  text: "text-green-300"  },
-  solo:        { emoji: "🎒", color: "from-purple-500/20 to-violet-500/20", border: "border-purple-400/30", text: "text-purple-300" },
+  adventurous: { emoji: "🧗", color: "from-orange-500/20 to-red-500/20", border: "border-orange-400/30", text: "text-orange-300" },
+  relaxed: { emoji: "🌊", color: "from-blue-500/20 to-cyan-500/20", border: "border-blue-400/30", text: "text-blue-300" },
+  romantic: { emoji: "🌹", color: "from-rose-500/20 to-pink-500/20", border: "border-rose-400/30", text: "text-rose-300" },
+  cultural: { emoji: "🏛️", color: "from-amber-500/20 to-yellow-500/20", border: "border-amber-400/30", text: "text-amber-300" },
+  foodie: { emoji: "🍜", color: "from-green-500/20 to-emerald-500/20", border: "border-green-400/30", text: "text-green-300" },
+  solo: { emoji: "🎒", color: "from-purple-500/20 to-violet-500/20", border: "border-purple-400/30", text: "text-purple-300" },
 };
 
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
-export default function PostModal({ post, user, onClose, onPrev, onNext, hasPrev, hasNext }) {
+export default function PostModal({ post, user, onClose, onPrev, onNext, hasPrev, hasNext, liked, onLike, onDeleted }) {
   const [currentPhoto, setCurrentPhoto] = useState(0);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
+
   const photos = post.photos ?? [];
   const mood = MOOD_CONFIG[post.mood?.toLowerCase()] ?? null;
 
   const handleKey = useCallback((e) => {
-    if (e.key === "Escape") onClose();
+    if (e.key === "Escape") {
+      if (confirmingDelete) setConfirmingDelete(false);
+      else onClose();
+    }
     if (e.key === "ArrowRight") {
       if (currentPhoto < photos.length - 1) setCurrentPhoto(p => p + 1);
       else if (hasNext) onNext();
@@ -63,14 +71,50 @@ export default function PostModal({ post, user, onClose, onPrev, onNext, hasPrev
       if (currentPhoto > 0) setCurrentPhoto(p => p - 1);
       else if (hasPrev) onPrev();
     }
-  }, [currentPhoto, photos.length, onClose, onNext, onPrev, hasPrev, hasNext]);
+  }, [currentPhoto, photos.length, onClose, onNext, onPrev, hasPrev, hasNext, confirmingDelete]);
 
-  useEffect(() => { setCurrentPhoto(0); }, [post._id]);
+  useEffect(() => {
+    setCurrentPhoto(0);
+    setConfirmingDelete(false);
+    setDeleteError(null);
+  }, [post._id]);
 
   useEffect(() => {
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   }, [handleKey]);
+
+  
+  async function handleDeleteClick() {
+  if (!confirmingDelete) {
+    setConfirmingDelete(true);
+    setDeleteError(null);
+    return;
+  }
+
+  setDeleting(true);
+  setDeleteError(null);
+
+  try {
+    await axios.delete(
+      `http://localhost:5000/api/posts/${post._id}`,
+      {
+        withCredentials: true
+      }
+    );
+
+    onDeleted?.(post._id);
+    onClose();
+
+  } catch (err) {
+    setDeleteError(
+      err.response?.data?.message || "Failed to delete post"
+    );
+
+    setDeleting(false);
+    setConfirmingDelete(false);
+  }
+}
 
   const formattedDate = post.createdAt
     ? new Date(post.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
@@ -90,52 +134,49 @@ export default function PostModal({ post, user, onClose, onPrev, onNext, hasPrev
         .modal-in { animation: modalIn 0.28s cubic-bezier(0.16,1,0.3,1) both; }
         .photo-fade { animation: fadeIn 0.18s ease both; }
 
-        .carousel-btn {
+        /* Shared nav-arrow style — used by both the in-photo carousel arrows
+           and the between-post arrows outside the modal, so they read as
+           one consistent visual language instead of two different button styles. */
+        .nav-circle {
+          width: 38px;
+          height: 38px;
+          border-radius: 9999px;
+          background: rgba(15,15,15,0.7);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255,255,255,0.14);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: rgba(255,255,255,0.75);
+          cursor: pointer;
+          transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+          padding: 0;
+        }
+        .nav-circle:hover {
+          background: rgba(15,15,15,0.92);
+          border-color: rgba(255,255,255,0.32);
+          color: #fff;
+        }
+
+        .carousel-nav {
           position: absolute;
           top: 50%;
           transform: translateY(-50%);
-          width: 36px;
-          height: 36px;
-          border-radius: 9999px;
-          background: rgba(0,0,0,0.55);
-          backdrop-filter: blur(8px);
-          border: 1px solid rgba(255,255,255,0.15);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          cursor: pointer;
-          transition: background 0.2s, border-color 0.2s;
           z-index: 10;
         }
-        .carousel-btn:hover {
-          background: rgba(0,0,0,0.8);
-          border-color: rgba(255,255,255,0.3);
-        }
-        .carousel-btn.left  { left: 12px; }
-        .carousel-btn.right { right: 12px; }
+        .carousel-nav:hover { transform: translateY(-50%) scale(1.06); }
+        .carousel-nav.left  { left: 12px; }
+        .carousel-nav.right { right: 12px; }
 
-        .post-nav-btn {
+        .post-nav {
           position: fixed;
           top: 50%;
           transform: translateY(-50%);
-          width: 40px;
-          height: 40px;
-          border-radius: 9999px;
-          background: rgba(24,24,24,0.9);
-          backdrop-filter: blur(12px);
-          border: 1px solid rgba(255,255,255,0.1);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: rgba(255,255,255,0.5);
-          cursor: pointer;
-          transition: all 0.2s;
           z-index: 60;
         }
-        .post-nav-btn:hover { color: white; border-color: rgba(255,255,255,0.25); }
-        .post-nav-btn.left  { left: calc(50% - 340px); }
-        .post-nav-btn.right { right: calc(50% - 340px); }
+        .post-nav:hover { transform: translateY(-50%) scale(1.06); }
+        .post-nav.left  { left: calc(50% - 340px); }
+        .post-nav.right { right: calc(50% - 340px); }
 
         .thumb-btn {
           width: 52px;
@@ -157,12 +198,12 @@ export default function PostModal({ post, user, onClose, onPrev, onNext, hasPrev
       >
         {/* Between-post nav — outside modal so they float freely */}
         {hasPrev && (
-          <button className="post-nav-btn left" onClick={e => { e.stopPropagation(); onPrev(); }}>
+          <button className="nav-circle post-nav left" onClick={e => { e.stopPropagation(); onPrev(); }}>
             <ChevronLeftIcon />
           </button>
         )}
         {hasNext && (
-          <button className="post-nav-btn right" onClick={e => { e.stopPropagation(); onNext(); }}>
+          <button className="nav-circle post-nav right" onClick={e => { e.stopPropagation(); onNext(); }}>
             <ChevronRightIcon />
           </button>
         )}
@@ -223,14 +264,14 @@ export default function PostModal({ post, user, onClose, onPrev, onNext, hasPrev
               </div>
             )}
 
-            {/* Carousel arrows — perfectly centered */}
+            {/* Carousel arrows — same visual language as the post-nav arrows */}
             {photos.length > 1 && currentPhoto > 0 && (
-              <button className="carousel-btn left" onClick={() => setCurrentPhoto(p => p - 1)}>
+              <button className="nav-circle carousel-nav left" onClick={() => setCurrentPhoto(p => p - 1)}>
                 <ChevronLeftIcon />
               </button>
             )}
             {photos.length > 1 && currentPhoto < photos.length - 1 && (
-              <button className="carousel-btn right" onClick={() => setCurrentPhoto(p => p + 1)}>
+              <button className="nav-circle carousel-nav right" onClick={() => setCurrentPhoto(p => p + 1)}>
                 <ChevronRightIcon />
               </button>
             )}
@@ -368,26 +409,63 @@ export default function PostModal({ post, user, onClose, onPrev, onNext, hasPrev
 
             {/* Actions */}
             <div style={{
-              display: "flex", alignItems: "center", gap: "20px",
+              display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px",
               paddingTop: "16px",
               borderTop: "1px solid rgba(255,255,255,0.06)",
             }}>
               <button
-                style={{ display: "flex", alignItems: "center", gap: "7px", color: "rgba(255,255,255,0.4)", background: "none", border: "none", cursor: "pointer", transition: "color 0.2s" }}
+                onClick={() => onLike(post._id)}
+                style={{ display: "flex", alignItems: "center", gap: "7px", color: liked ? "#fb7185" : "rgba(255,255,255,0.4)", background: "none", border: "none", cursor: "pointer", transition: "color 0.2s" }}
                 onMouseEnter={e => e.currentTarget.style.color = "#fb7185"}
-                onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.4)"}
+                onMouseLeave={e => e.currentTarget.style.color = liked ? "#fb7185" : "rgba(255,255,255,0.4)"}
               >
-                <HeartIcon />
+                <HeartIcon filled={liked} />
                 <span style={{ fontSize: "13px", fontWeight: 500 }}>{post.likes ?? 0}</span>
               </button>
-              <button
-                style={{ display: "flex", alignItems: "center", gap: "7px", color: "rgba(255,255,255,0.4)", background: "none", border: "none", cursor: "pointer", transition: "color 0.2s" }}
-                onMouseEnter={e => e.currentTarget.style.color = "rgba(255,255,255,0.8)"}
-                onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.4)"}
-              >
-                <CommentIcon />
-                <span style={{ fontSize: "13px", fontWeight: 500 }}>{post.comments ?? 0}</span>
-              </button>
+
+              {!confirmingDelete ? (
+                <button
+                  onClick={handleDeleteClick}
+                  title="Delete post"
+                  style={{ display: "flex", alignItems: "center", gap: "7px", color: "rgba(255,255,255,0.4)", background: "none", border: "none", cursor: "pointer", transition: "color 0.2s" }}
+                  onMouseEnter={e => e.currentTarget.style.color = "#f87171"}
+                  onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.4)"}
+                >
+                  <TrashIcon />
+                </button>
+              ) : (
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  {deleteError && (
+                    <span style={{ fontSize: "11px", color: "#f87171" }}>{deleteError}</span>
+                  )}
+                  <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.5)" }}>Delete this post?</span>
+                  <button
+                    onClick={handleDeleteClick}
+                    disabled={deleting}
+                    style={{
+                      fontSize: "12px", fontWeight: 600,
+                      color: "#fff", background: "#dc2626",
+                      border: "none", borderRadius: "8px",
+                      padding: "6px 12px", cursor: deleting ? "default" : "pointer",
+                      opacity: deleting ? 0.7 : 1,
+                    }}
+                  >
+                    {deleting ? "Deleting…" : "Yes, delete"}
+                  </button>
+                  <button
+                    onClick={() => setConfirmingDelete(false)}
+                    disabled={deleting}
+                    style={{
+                      fontSize: "12px", fontWeight: 500,
+                      color: "rgba(255,255,255,0.6)", background: "rgba(255,255,255,0.06)",
+                      border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px",
+                      padding: "6px 12px", cursor: deleting ? "default" : "pointer",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

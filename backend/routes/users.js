@@ -114,7 +114,7 @@
     }
   );
 
-
+// GET ANOTHER USER PROFILE
   router.get("/:id", protect, async (req, res) => {
     try {
       const user = await User.findById(req.params.id).select("-password");
@@ -124,6 +124,8 @@
       res.status(500).json({ message: "Server error" });
     }
   });
+
+  
 
 
   router.get('/', protect, getAllUsers);

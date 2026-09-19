@@ -58,12 +58,12 @@ const ImagesIcon = () => (
 
 // ─── MOOD CONFIG ──────────────────────────────────────────────────────────────
 const MOOD_CONFIG = {
-  adventurous: { emoji: "🧗", color: "from-orange-500/20 to-red-500/20",    border: "border-orange-400/30", text: "text-orange-400" },
-  relaxed:     { emoji: "🌊", color: "from-blue-500/20 to-cyan-500/20",     border: "border-blue-400/30",   text: "text-blue-400"   },
-  romantic:    { emoji: "🌹", color: "from-rose-500/20 to-pink-500/20",     border: "border-rose-400/30",   text: "text-rose-400"   },
-  cultural:    { emoji: "🏛️", color: "from-amber-500/20 to-yellow-500/20", border: "border-amber-400/30",  text: "text-amber-400"  },
-  foodie:      { emoji: "🍜", color: "from-green-500/20 to-emerald-500/20", border: "border-green-400/30",  text: "text-green-400"  },
-  solo:        { emoji: "🎒", color: "from-purple-500/20 to-violet-500/20", border: "border-purple-400/30", text: "text-purple-400" },
+  adventurous: { emoji: "🧗", color: "from-orange-500/20 to-red-500/20", border: "border-orange-400/30", text: "text-orange-400" },
+  relaxed: { emoji: "🌊", color: "from-blue-500/20 to-cyan-500/20", border: "border-blue-400/30", text: "text-blue-400" },
+  romantic: { emoji: "🌹", color: "from-rose-500/20 to-pink-500/20", border: "border-rose-400/30", text: "text-rose-400" },
+  cultural: { emoji: "🏛️", color: "from-amber-500/20 to-yellow-500/20", border: "border-amber-400/30", text: "text-amber-400" },
+  foodie: { emoji: "🍜", color: "from-green-500/20 to-emerald-500/20", border: "border-green-400/30", text: "text-green-400" },
+  solo: { emoji: "🎒", color: "from-purple-500/20 to-violet-500/20", border: "border-purple-400/30", text: "text-purple-400" },
 };
 
 
@@ -75,6 +75,8 @@ export default function ProfilePage() {
   const [posts, setPosts] = useState([]);
   const [activeTab, setActiveTab] = useState("posts");
   const [selectedPostIdx, setSelectedPostIdx] = useState(null);
+  const [likedPosts, setLikedPosts] = useState(new Set());
+
 
   useEffect(() => {
     axios.get("http://localhost:5000/api/users/me", { withCredentials: true })
@@ -89,16 +91,69 @@ export default function ProfilePage() {
           travelStyle: d.travelStyles ?? [],
           dreamDestinations: d.dreamDestinations ?? [],
           tripsCount: 12,
-          buddiesCount: 5,
           countriesCount: 8,
         });
+
+        // seed which of these posts the logged-in user has already liked
+        axios.get("http://localhost:5000/api/posts/mine", { withCredentials: true })
+          .then((postsRes) => {
+            const liked = postsRes.data
+              .filter(p => p.likes?.includes(d._id))
+              .map(p => p._id);
+            setLikedPosts(new Set(liked));
+
+            const normalizedPosts = postsRes.data.map(p => ({
+              ...p,
+              likes: Array.isArray(p.likes) ? p.likes.length : p.likes ?? 0,
+            }));
+            setPosts(normalizedPosts);
+          })
+          .catch((err) => console.error("Failed to load posts", err));
       })
       .catch((err) => console.error("Failed to load user", err));
-
-    axios.get("http://localhost:5000/api/posts/mine", { withCredentials: true })
-      .then((res) => setPosts(res.data))
-      .catch((err) => console.error("Failed to load posts", err));
   }, []);
+
+  const toggleLike = async (postId) => {
+    const wasLiked = likedPosts.has(postId);
+
+    setLikedPosts(prev => {
+      const next = new Set(prev);
+      wasLiked ? next.delete(postId) : next.add(postId);
+      return next;
+    });
+    setPosts(prev => prev.map(p =>
+      p._id === postId
+        ? { ...p, likes: (p.likes ?? 0) + (wasLiked ? -1 : 1) }
+        : p
+    ));
+
+    try {
+      const res = await axios.patch(
+        `http://localhost:5000/api/posts/${postId}/like`,
+        {},
+        { withCredentials: true }
+      );
+      setPosts(prev => prev.map(p =>
+        p._id === postId ? { ...p, likes: res.data.likes } : p
+      ));
+    } catch (err) {
+      console.error("Failed to update like", err);
+      setLikedPosts(prev => {
+        const next = new Set(prev);
+        wasLiked ? next.add(postId) : next.delete(postId);
+        return next;
+      });
+      setPosts(prev => prev.map(p =>
+        p._id === postId
+          ? { ...p, likes: (p.likes ?? 0) + (wasLiked ? 1 : -1) }
+          : p
+      ));
+    }
+  };
+
+  const handlePostDeleted = (postId) => {
+    setPosts(prev => prev.filter(p => p._id !== postId));
+  };
 
   if (!user) {
     return (
@@ -282,10 +337,7 @@ export default function ProfilePage() {
             {/* Stats */}
             <div className="flex items-center justify-center sm:justify-start gap-6 mb-4">
               {[
-                { label: "posts",     value: posts.length,        gradient: false },
-                { label: "buddies",   value: user.buddiesCount,   gradient: false },
-                { label: "trips",     value: user.tripsCount,     gradient: false },
-                { label: "countries", value: user.countriesCount, gradient: true  },
+                { label: "posts", value: posts.length, gradient: false },
               ].map(({ label, value, gradient }, i, arr) => (
                 <div key={label} className="flex items-center gap-6">
                   <div className="stat-block">
@@ -360,14 +412,12 @@ export default function ProfilePage() {
                     )}
 
                     {/* Hover overlay */}
-                    <div className="post-thumb-overlay">
-                      <div className="flex items-center gap-1.5 text-white font-semibold text-sm">
-                        <HeartIcon filled /> {post.likes ?? 0}
-                      </div>
-                      <div className="flex items-center gap-1.5 text-white font-semibold text-sm">
-                        <CommentIcon /> {post.comments ?? 0}
-                      </div>
-                    </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleLike(post._id); }}
+                      className="flex items-center gap-1.5 text-white font-semibold text-sm"
+                    >
+                      <HeartIcon filled={likedPosts.has(post._id)} /> {post.likes ?? 0}
+                    </button>
 
                     {/* Location */}
                     {post.location && (
@@ -390,7 +440,7 @@ export default function ProfilePage() {
             <span className="text-4xl">🗺️</span>
             <p className="text-sm text-white/30">Your trips will appear here.</p>
             <button
-              onClick={() => navigate("/trips/create")}
+              onClick={() => navigate("/plan")}
               className="mt-2 text-xs font-semibold text-black bg-white hover:bg-amber-400 transition-colors px-4 py-2 rounded-full"
             >
               Plan a trip
@@ -411,6 +461,9 @@ export default function ProfilePage() {
           onNext={() => setSelectedPostIdx(i => Math.min(posts.length - 1, i + 1))}
           hasPrev={selectedPostIdx > 0}
           hasNext={selectedPostIdx < posts.length - 1}
+          liked={likedPosts.has(selectedPost._id)}
+          onLike={toggleLike}
+          onDeleted={handlePostDeleted}
         />
       )}
     </div>
