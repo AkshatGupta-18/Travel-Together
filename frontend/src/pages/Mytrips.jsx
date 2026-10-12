@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import ImageLightbox from "../components/ImageLightbox";
 
 // ─── ICONS ────────────────────────────────────────────────────────────────────
 const ArrowLeftIcon = () => (
@@ -117,27 +118,44 @@ function TripSkeleton() {
   );
 }
 
+// ─── META ITEM (one cell of the info grid) ────────────────────────────────────
+function MetaItem({ icon, value, label, muted }) {
+  return (
+    <div className="flex items-center gap-2.5 text-white/50 min-w-0">
+      <div className="w-8 h-8 rounded-lg bg-white/[0.04] flex items-center justify-center shrink-0">
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <p className={`text-xs truncate ${muted ? "text-white/30" : "text-white/75"}`}>{value}</p>
+        <p className="text-[10px] text-white/30">{label}</p>
+      </div>
+    </div>
+  );
+}
+
 // ─── ITINERARY DAY ────────────────────────────────────────────────────────────
-function ItineraryDay({ day }) {
+function ItineraryDay({ day, isLast }) {
   return (
     <div className="flex gap-3">
       <div className="flex flex-col items-center shrink-0">
         <div
-          className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-black"
+          className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-black"
           style={{ background: "linear-gradient(135deg, #f59e0b, #f97316)" }}
         >
           {day.day}
         </div>
-        <div className="w-px flex-1 bg-white/[0.08] mt-1" />
+        {!isLast && <div className="w-px flex-1 bg-white/[0.08] my-1" />}
       </div>
-      <div className="pb-4 flex-1 min-w-0">
-        <p className="text-sm font-semibold text-white/85 mb-1">{day.title}</p>
+
+      <div className={`flex-1 min-w-0 ${isLast ? "" : "pb-5"}`}>
+        <p className="text-sm font-semibold text-white/85 leading-7">{day.title}</p>
+
         {day.activities?.length > 0 && (
-          <ul className="flex flex-col gap-1">
+          <ul className="flex flex-col gap-1 mt-0.5">
             {day.activities.map((act, i) => (
-              <li key={i} className="text-xs text-white/40 flex items-start gap-1.5">
-                <span className="text-amber-400/50 mt-0.5">·</span>
-                <span>{act}</span>
+              <li key={i} className="text-xs text-white/45 flex items-start gap-2 leading-relaxed">
+                <span className="text-amber-400/60 shrink-0">•</span>
+                <span className="whitespace-pre-line">{act}</span>
               </li>
             ))}
           </ul>
@@ -153,8 +171,10 @@ function TripCard({ trip, onDeleted }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
+  const [showImage, setShowImage] = useState(false);
 
   const duration = tripDuration(trip.startDate, trip.endDate);
+  const sortedItinerary = trip.itinerary ? [...trip.itinerary].sort((a, b) => a.day - b.day) : [];
 
   // DELETE /api/trips/:tripId — remove a trip the logged-in user owns.
   // Auth is via the httpOnly JWT cookie, so withCredentials is required.
@@ -183,8 +203,11 @@ function TripCard({ trip, onDeleted }) {
 
   return (
     <div className="card overflow-hidden">
-      {/* Cover image or gradient fallback */}
-      <div className="relative h-48 overflow-hidden">
+      {/* Cover image or gradient fallback (click image to open it full size) */}
+      <div
+        className={`relative h-48 overflow-hidden ${trip.coverImage ? "cursor-zoom-in" : ""}`}
+        onClick={() => trip.coverImage && setShowImage(true)}
+      >
         {trip.coverImage ? (
           <img src={trip.coverImage} alt={trip.title} className="w-full h-full object-cover" />
         ) : (
@@ -222,52 +245,40 @@ function TripCard({ trip, onDeleted }) {
       {/* Body */}
       <div className="p-5">
         {trip.description && (
-          <p className="text-sm text-white/50 leading-relaxed mb-4 line-clamp-2">
+          <p className="text-sm text-white/50 leading-relaxed mb-5 line-clamp-2">
             {trip.description}
           </p>
         )}
 
-        {/* Meta grid */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className="flex items-center gap-2 text-white/50">
-            <CalendarIcon />
-            <div className="min-w-0">
-              <p className="text-xs text-white/70 truncate">{formatDateRange(trip.startDate, trip.endDate)}</p>
-              {duration && <p className="text-[10px] text-white/30">{duration} day{duration > 1 ? "s" : ""}</p>}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 text-white/50">
-            <WalletIcon />
-            <div className="min-w-0">
-              <p className="text-xs text-white/70">{formatBudget(trip.budget)}</p>
-              <p className="text-[10px] text-white/30">per person</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 text-white/50">
-            <UsersIcon />
-            <div className="min-w-0">
-              <p className="text-xs text-white/70">Up to {trip.maxTravelers}</p>
-              <p className="text-[10px] text-white/30">travelers</p>
-            </div>
-          </div>
-
-          {trip.accommodation && (
-            <div className="flex items-center gap-2 text-white/50">
-              <BedIcon />
-              <div className="min-w-0">
-                <p className="text-xs text-white/70 truncate">{trip.accommodation}</p>
-                <p className="text-[10px] text-white/30">stay</p>
-              </div>
-            </div>
-          )}
+        {/* Meta grid — always 4 cells so every card lines up */}
+        <div className="grid grid-cols-2 gap-x-4 gap-y-4 mb-4">
+          <MetaItem
+            icon={<CalendarIcon />}
+            value={formatDateRange(trip.startDate, trip.endDate)}
+            label={duration ? `${duration} day${duration > 1 ? "s" : ""}` : "dates"}
+          />
+          <MetaItem
+            icon={<WalletIcon />}
+            value={formatBudget(trip.budget)}
+            label="per person"
+          />
+          <MetaItem
+            icon={<UsersIcon />}
+            value={`Up to ${trip.maxTravelers}`}
+            label="travelers"
+          />
+          <MetaItem
+            icon={<BedIcon />}
+            value={trip.accommodation || "Not specified"}
+            label="stay"
+            muted={!trip.accommodation}
+          />
         </div>
 
         {trip.transportation && (
-          <div className="flex flex-wrap gap-1.5 mb-1">
+          <div className="flex flex-wrap gap-1.5">
             <span
-              className="text-[10px] px-2.5 py-1 rounded-full text-amber-400/70"
+              className="text-[11px] px-2.5 py-1 rounded-full text-amber-400/70"
               style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.15)" }}
             >
               🚐 {trip.transportation}
@@ -276,32 +287,36 @@ function TripCard({ trip, onDeleted }) {
         )}
 
         {/* Itinerary toggle */}
-        {trip.itinerary?.length > 0 && (
-          <div className="border-t border-white/[0.06] mt-4 pt-3">
+        {sortedItinerary.length > 0 && (
+          <div className="border-t border-white/[0.06] mt-5 pt-4">
             <button
               onClick={() => setExpanded((v) => !v)}
               className="w-full flex items-center justify-between text-xs font-medium text-white/60 hover:text-white transition-colors"
             >
               <span className="flex items-center gap-1.5">
-                <RouteIcon /> {expanded ? "Hide itinerary" : `View itinerary (${trip.itinerary.length} day${trip.itinerary.length > 1 ? "s" : ""})`}
+                <RouteIcon />
+                {expanded
+                  ? "Hide itinerary"
+                  : `View itinerary (${sortedItinerary.length} day${sortedItinerary.length > 1 ? "s" : ""})`}
               </span>
               <ChevronDownIcon open={expanded} />
             </button>
 
             {expanded && (
-              <div className="mt-4 pl-1">
-                {[...trip.itinerary]
-                  .sort((a, b) => a.day - b.day)
-                  .map((day, idx) => (
-                    <ItineraryDay key={idx} day={day} />
-                  ))}
+              <div
+                className="mt-4 rounded-xl p-4"
+                style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}
+              >
+                {sortedItinerary.map((day, idx) => (
+                  <ItineraryDay key={idx} day={day} isLast={idx === sortedItinerary.length - 1} />
+                ))}
               </div>
             )}
           </div>
         )}
 
         {/* Delete action */}
-        <div className="border-t border-white/[0.06] mt-4 pt-3 flex items-center justify-between gap-3">
+        <div className="border-t border-white/[0.06] mt-5 pt-3 flex items-center justify-between gap-3">
           {deleteError && (
             <span className="text-[11px] text-red-400/80">{deleteError}</span>
           )}
@@ -336,6 +351,14 @@ function TripCard({ trip, onDeleted }) {
           </div>
         </div>
       </div>
+
+      {showImage && (
+        <ImageLightbox
+          src={trip.coverImage}
+          alt={trip.title}
+          onClose={() => setShowImage(false)}
+        />
+      )}
     </div>
   );
 }

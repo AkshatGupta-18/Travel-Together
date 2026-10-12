@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Navbar from "../Home/Navbar";
 import PostModal from "./PostModal";
+import ProfileTrips from "./ProfileTrips";
 
 // ─── ICONS ────────────────────────────────────────────────────────────────────
 const HeartIcon = ({ filled }) => (
@@ -436,15 +437,8 @@ export default function ProfilePage() {
 
         {/* ── TRIPS TAB ── */}
         {activeTab === "trips" && (
-          <div className="anim-fade-up d2 flex flex-col items-center justify-center py-20 gap-3">
-            <span className="text-4xl">🗺️</span>
-            <p className="text-sm text-white/30">Your trips will appear here.</p>
-            <button
-              onClick={() => navigate("/plan")}
-              className="mt-2 text-xs font-semibold text-black bg-white hover:bg-amber-400 transition-colors px-4 py-2 rounded-full"
-            >
-              Plan a trip
-            </button>
+          <div className="anim-fade-up d2">
+            <ProfileTrips />
           </div>
         )}
       </div>

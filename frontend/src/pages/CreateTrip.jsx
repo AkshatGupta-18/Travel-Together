@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from "axios";
+import ImageLightbox from '../components/ImageLightbox';
 
 export default function CreateTrip() {
   const navigate = useNavigate();
@@ -20,6 +21,17 @@ export default function CreateTrip() {
   });
 
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [coverImage, setCoverImage] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState('');
+  const [showPreview, setShowPreview] = useState(false);
+
+  // Clean up the temporary preview URL
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -30,65 +42,81 @@ export default function CreateTrip() {
     });
   };
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Cover image must be under 5MB');
+      e.target.value = '';
+      return;
+    }
+
+    setError('');
+    setCoverImage(file);
+    setPreviewUrl(URL.createObjectURL(file));
+  };
+
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
+    setLoading(true);
+    setError('');
 
-  setLoading(true);
+    try {
+      const formData = new FormData();
 
-  try {
-    const tripData = {
-      title: form.title,
-      destination: form.destination,
-      description: form.description,
+      formData.append("title", form.title);
+      formData.append("destination", form.destination);
+      formData.append("description", form.description);
+      formData.append("startDate", form.startDate);
+      formData.append("endDate", form.endDate);
+      formData.append("budget", Number(form.budget));
+      formData.append("maxTravelers", Number(form.maxTravelers));
+      formData.append("travelStyle", form.travelStyle);
+      formData.append("accommodation", form.accommodation);
+      formData.append("transportation", form.transportation);
 
-      startDate: form.startDate,
-      endDate: form.endDate,
-
-      budget: Number(form.budget),
-      maxTravelers: Number(form.maxTravelers),
-
-      travelStyle: form.travelStyle,
-      accommodation: form.accommodation,
-      transportation: form.transportation,
-
-      // Temporary because the current form uses
-      // one textarea for the whole itinerary
-      itinerary: form.itinerary
+      // Convert itinerary textarea into the structure expected by backend
+      const itinerary = form.itinerary
         ? [
-            {
-              day: 1,
-              title: "Trip Plan",
-              activities: [form.itinerary],
-            },
-          ]
-        : [],
+          {
+            day: 1,
+            title: "Trip Plan",
+            activities: [form.itinerary],
+          },
+        ]
+        : [];
 
-      coverImage: "",
-    };
+      formData.append("itinerary", JSON.stringify(itinerary));
 
-    const response = await axios.post(
-      "http://localhost:5000/api/trips",
-      tripData,
-      {
-        withCredentials: true,
+      // Add cover image if user selected one
+      if (coverImage) {
+        formData.append("coverImage", coverImage);
       }
-    );
 
-    console.log("Trip created:", response.data);
+      const response = await axios.post(
+        "http://localhost:5000/api/trips",
+        formData,
+        {
+          withCredentials: true,
+        }
+      );
 
-    navigate("/trips");
+      console.log("Trip created:", response.data);
 
-  } catch (error) {
-    console.error("Trip creation failed:", error);
+      navigate("/trips");
+    } catch (err) {
+      console.error("Trip creation failed:", err);
+      setError(
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to create trip"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    console.error(
-      error.response?.data?.message || "Failed to create trip"
-    );
-
-  } finally {
-    setLoading(false);
-  }
-};
 
   return (
     <div className="min-h-screen bg-[#080808] text-white" style={{ fontFamily: "'DM Sans', sans-serif" }}>
@@ -423,33 +451,57 @@ Day 5 - Return journey`}
               </p>
             </div>
 
-            {/* Image Placeholder */}
+            {/* Trip Cover Image */}
             <div>
               <label className="field-label">
                 Trip Cover Image
               </label>
 
               <div className="dropzone">
-                <div className="text-3xl mb-2">
-                  📷
-                </div>
+                {previewUrl ? (
+                  <img
+                    src={previewUrl}
+                    alt="Cover preview"
+                    onClick={() => setShowPreview(true)}
+                    className="mx-auto max-h-48 rounded-xl object-cover cursor-pointer"
+                  />
+                ) : (
+                  <div className="text-3xl mb-2">
+                    📷
+                  </div>
+                )}
 
-                <p className="text-sm text-white/50">
-                  Upload a cover image for your trip
+                <p className="text-sm text-white/50 mt-2">
+                  {coverImage ? coverImage.name : 'Upload a cover image for your trip'}
                 </p>
 
                 <p className="text-xs text-white/25 mt-1">
-                  JPG, PNG up to 5MB
+                  JPG, PNG, WEBP up to 5MB
                 </p>
 
-                <button
-                  type="button"
-                  className="mt-4 px-4 py-2 rounded-full border border-white/10 bg-white/5 text-amber-400 text-sm font-medium hover:bg-white/10 hover:border-amber-400/30 transition"
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  id="trip-cover-image"
+                  className="hidden"
+                  onChange={handleImageChange}
+                />
+
+                <label
+                  htmlFor="trip-cover-image"
+                  className="inline-block mt-4 px-4 py-2 rounded-full border border-white/10 bg-white/5 text-amber-400 text-sm font-medium hover:bg-white/10 hover:border-amber-400/30 transition cursor-pointer"
                 >
-                  Choose Image
-                </button>
+                  {coverImage ? 'Change Image' : 'Choose Image'}
+                </label>
               </div>
             </div>
+
+            {/* Error */}
+            {error && (
+              <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                {error}
+              </div>
+            )}
 
             {/* Actions */}
             <div className="flex justify-end gap-3 pt-5 border-t border-white/[0.06]">
@@ -476,6 +528,14 @@ Day 5 - Return journey`}
           </form>
         </div>
       </div>
+
+      {showPreview && (
+        <ImageLightbox
+          src={previewUrl}
+          alt="Cover preview"
+          onClose={() => setShowPreview(false)}
+        />
+      )}
 
       <div className="h-20 md:h-0" />
     </div>

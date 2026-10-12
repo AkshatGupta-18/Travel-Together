@@ -6,6 +6,7 @@ import api from "../../api/axios"
 import TrendingPosts from "./TrendingPosts";
 import MyPosts from "./MyPosts";
 import CreateTrip from "../CreateTrip";
+import OpenTrips from "./OpenTrips";
 
 
 // ─── STATIC DATA ──────────────────────────────────────────────────────────────
@@ -346,7 +347,7 @@ export default function HomePage() {
                   Hey {user.name.split(" ")[0]}, ready to <span className="gradient-text">explore?</span> 🌍
                 </h1>
                 <p className="text-sm text-white/45 max-w-md">
-                   Find travel buddies heading to{" "}
+                  Find travel buddies heading to{" "}
                   <span className="text-amber-400/80">{user.dreamDestinations[0]}</span> and start your trip.
                 </p>
               </div>
@@ -405,9 +406,22 @@ export default function HomePage() {
                       className="card p-4 flex items-start gap-3.5 group cursor-pointer"
                       onClick={() => navigate(`/user/${buddy.id}`)}
                     >
-                      <div className={connected ? "avatar-ring" : ""} style={{ borderRadius: "9999px", padding: connected ? "2px" : "0" }}>
-                        <img src={buddy.avatar} alt={buddy.name} className="w-12 h-12 rounded-full object-cover" />
-                      </div>
+
+                      {buddy.avatar && (
+                        <div
+                          className={connected ? "avatar-ring" : ""}
+                          style={{
+                            borderRadius: "9999px",
+                            padding: connected ? "2px" : "0",
+                          }}
+                        >
+                          <img
+                            src={buddy.avatar}
+                            alt={buddy.name}
+                            className="w-12 h-12 rounded-full object-cover"
+                          />
+                        </div>
+                      )}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
                           <p className="text-sm font-semibold text-white truncate">{buddy.name}</p>
@@ -421,10 +435,13 @@ export default function HomePage() {
                           ))}
                         </div>
                         <button
-                          onClick={(e) => toggleConnect(buddy.id, e)}
-                          className={connected ? "btn-connected" : "btn-primary text-xs py-1.5 px-4"}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/user/${buddy.id}`);
+                          }}
+                          className="btn-primary text-xs py-1.5 px-4"
                         >
-                          {connected ? <><CheckIcon />Connected</> : "Connect"}
+                          View Profile
                         </button>
                       </div>
                     </div>
@@ -450,51 +467,16 @@ export default function HomePage() {
 
           {/* ─ OPEN TRIPS ─ */}
           {activeTab === "trips" && (
-            <div className="flex flex-col gap-4 anim-scale-in">
-              <div className="flex items-center justify-between mb-1">
-                <p className="text-xs uppercase tracking-[0.15em] text-white/30 font-medium">Trips looking for members</p>
-                <a href="/trips" className="text-xs text-amber-400/70 hover:text-amber-400 flex items-center gap-1">Browse all <ChevronRightIcon /></a>
-              </div>
-              {POPULAR_TRIPS.map(trip => (
-                <div key={trip.id} className="card overflow-hidden flex group hover:scale-[1.01] transition-transform">
-                  <div className="w-32 md:w-44 h-32 shrink-0 overflow-hidden">
-                    <img src={trip.img} alt={trip.destination} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                  </div>
-                  <div className="flex-1 p-4 flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-display font-bold text-white text-lg">{trip.destination}</h3>
-                        <span className="text-lg">{trip.flag}</span>
-                      </div>
-                      <p className="text-xs text-white/35 mb-2">{trip.country} · {trip.dates}</p>
-                      <div className="flex items-center gap-2 mb-3">
-                        <img src={trip.orgAvatar} alt="" className="w-5 h-5 rounded-full" />
-                        <span className="text-xs text-white/40">@{trip.organizer} · {trip.members} members</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-green-400 bg-green-400/10 border border-green-400/20 px-2.5 py-1 rounded-full">
-                        {trip.spots} spot{trip.spots > 1 ? "s" : ""} left
-                      </span>
-                      <button className="btn-primary text-xs py-1.5 px-4">Request to Join</button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              <a href="/trips/create" className="card p-5 flex items-center justify-center gap-3 border-dashed border-white/10 hover:border-amber-400/25 transition-all group cursor-pointer">
-                <div className="w-8 h-8 rounded-full bg-amber-400/10 border border-amber-400/20 flex items-center justify-center group-hover:bg-amber-400/20 transition-all">
-                  <PlusIcon />
-                </div>
-                <p className="text-sm text-white/35 group-hover:text-white/70 transition-colors">Plan a new trip and invite others</p>
-              </a>
+            <div className="anim-scale-in">
+              <OpenTrips />
             </div>
           )}
         </main>
 
-        
+
       </div>
 
-      
+
     </div>
   );
 }

@@ -3,7 +3,6 @@ import { useState, useEffect, useRef } from "react";
 // ─── DATA ────────────────────────────────────────────────────────────────────
 
 const NAV_LINKS = [
-  { label: "Explore", href: "#explore" },
   { label: "How it works", href: "#how-it-works" },
   { label: "Stories", href: "#stories" },
 ];
@@ -169,15 +168,12 @@ const CloseIcon = () => (
 function PostCard({ post, className = "" }) {
   const [liked, setLiked] = useState(false);
   return (
-    <div className={`bg-zinc-900 border border-white/8 rounded-2xl overflow-hidden flex flex-col ${className}`}>
+    <div className={`bg-zinc-900 border border-white/10 rounded-2xl overflow-hidden flex flex-col ${className}`}>
       {/* Header */}
       <div className="flex items-center gap-2.5 px-3.5 py-3">
         <img src={post.avatar} alt={post.user} className="w-8 h-8 rounded-full object-cover ring-2 ring-amber-400/60" />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1">
-            <p className="text-xs font-semibold text-white truncate">{post.user}</p>
-            {post.verified && <VerifiedIcon />}
-          </div>
+          <p className="text-xs font-semibold text-white truncate">{post.user}</p>
           <div className="flex items-center gap-1 text-white/40">
             <LocationPinIcon />
             <p className="text-[10px] truncate">{post.location}</p>
@@ -190,14 +186,12 @@ function PostCard({ post, className = "" }) {
       </div>
       {/* Actions */}
       <div className="px-3.5 py-2.5 flex flex-col gap-2">
-        <div className="flex items-center gap-3">
-          <button onClick={() => setLiked(!liked)} className="transition-transform active:scale-90">
+        <div className="flex items-center gap-2">
+          <button onClick={() => setLiked(!liked)} className="transition-transform active:scale-90" aria-label="Like">
             <HeartIcon filled={liked} />
           </button>
-          <CommentIcon />
-          <SendIcon />
+          <p className="text-xs font-semibold text-white">{post.likes} likes</p>
         </div>
-        <p className="text-xs font-semibold text-white">{post.likes} likes</p>
         <p className="text-[11px] text-white/60 leading-relaxed line-clamp-2">
           <span className="font-semibold text-white mr-1">{post.user}</span>
           {post.caption}
@@ -479,7 +473,7 @@ export default function Landing() {
                 Where everyone's <em className="italic text-amber-400">going</em>
               </h2>
             </div>
-            <a href="/explore" className="hidden md:flex items-center gap-2 text-sm text-white/40 hover:text-white transition-colors">
+            <a href="/login" className="hidden md:flex items-center gap-2 text-sm text-white/40 hover:text-white transition-colors">
               View all <ArrowRight />
             </a>
           </div>
@@ -569,7 +563,7 @@ export default function Landing() {
           </div>
 
           <div className="text-center mt-10">
-            <a href="/explore"
+            <a href="/login"
               className="inline-flex items-center gap-2 text-sm text-white/40 hover:text-white border border-white/10 hover:border-white/30 px-6 py-3 rounded-full transition-all duration-200">
               Explore more posts <ArrowRight />
             </a>

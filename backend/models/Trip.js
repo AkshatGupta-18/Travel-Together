@@ -123,4 +123,6 @@ const tripSchema = new mongoose.Schema(
   }
 );
 
+tripSchema.index({ status: 1, endDate: 1, createdAt: -1 });
+
 export default mongoose.model("Trip", tripSchema);

@@ -89,19 +89,7 @@ export default function ProfileSidebar() {
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-1 py-3 border-t border-b border-white/[0.06] mb-4">
-          {[
-            ["Trips", user.tripsCount],
-            ["Buddies", user.buddiesCount],
-            ["Countries", user.countriesCount],
-          ].map(([label, val]) => (
-            <div key={label} className="text-center">
-              <p className="font-display font-bold text-white text-base">{val}</p>
-              <p className="text-[10px] text-white/25 uppercase tracking-wider">{label}</p>
-            </div>
-          ))}
-        </div>
+        
 
         <a href="/profile/edit" className="btn-ghost w-full text-center block text-xs py-2">Edit Profile</a>
       </div>
@@ -111,10 +99,8 @@ export default function ProfileSidebar() {
       {/* Nav links */}
       <div className="card p-2 anim-fade-up d2">
         {[
-          { icon: "🧭", label: "Discover", href: "/discover" },
           { icon: "🗺️", label: "My Trips", href: "/trips" },
-          { icon: "👥", label: "Buddies", href: "/buddies" },
-          { icon: "📸", label: "Stories", href: "/stories" },
+          { icon: "👥", label: "Buddies", href: "/match" },
         ].map((item) => (
           <Link
             key={item.label}

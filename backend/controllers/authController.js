@@ -2,7 +2,7 @@ import User from "../models/User.js";
 import jwt from "jsonwebtoken";
 
 // Generate JWT and set it as an httpOnly cookie
-const generateTokenAndSetCookie = (res, userId) => {
+export const generateTokenAndSetCookie = (res, userId) => {
   const token = jwt.sign({ id: userId }, process.env.JWT_SECRET, {
     expiresIn: "7d",
   });

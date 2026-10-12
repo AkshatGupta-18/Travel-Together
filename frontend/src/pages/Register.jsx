@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 
-
 // ─── ICONS ────────────────────────────────────────────────────────────────────
 
 const EyeIcon = ({ open }) =>
@@ -63,14 +62,14 @@ const GoogleIcon = () => (
   </svg>
 );
 
-// ─── SIDE PANEL COLLAGE ───────────────────────────────────────────────────────
+// ─── LEFT PANEL CONTENT ───────────────────────────────────────────────────────
 
+// Four equal tiles in a uniform 2×2 grid
 const COLLAGE = [
-  { img: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=500&q=80", span: "row-span-2" },
-  { img: "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=500&q=80", span: "" },
-  { img: "https://images.unsplash.com/photo-1580060839134-75a5edca2e99?w=500&q=80", span: "" },
-  { img: "https://images.unsplash.com/photo-1545569341-9eb8b30979d9?w=500&q=80", span: "" },
-  { img: "https://images.unsplash.com/photo-1533587851505-d119e13fa0d7?w=500&q=80", span: "col-span-2" },
+  "https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=600&q=80",
+  "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=600&q=80",
+  "https://images.unsplash.com/photo-1580060839134-75a5edca2e99?w=600&q=80",
+  "https://images.unsplash.com/photo-1545569341-9eb8b30979d9?w=600&q=80",
 ];
 
 const PERKS = [
@@ -79,6 +78,8 @@ const PERKS = [
   "Real-time trip planning & chat",
   "Verified explorer profiles",
 ];
+
+const AVATARS = ["47", "11", "32", "25", "8"];
 
 // ─── PASSWORD STRENGTH ────────────────────────────────────────────────────────
 
@@ -99,13 +100,34 @@ function getStrength(pw) {
   return { score, ...map[score] };
 }
 
+// ─── BRAND ────────────────────────────────────────────────────────────────────
+
+function Brand() {
+  return (
+    <div className="flex items-center gap-2">
+      <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
+        <span className="text-black font-black text-xs">T</span>
+      </div>
+      <span className="font-display font-bold text-lg text-white">
+        Travel<span className="gradient-text">Together</span>
+      </span>
+    </div>
+  );
+}
+
 // ─── INPUT FIELD ──────────────────────────────────────────────────────────────
 
 function InputField({ id, label, type = "text", placeholder, value, onChange, icon, rightSlot, error, hint, autoComplete }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-xs font-medium text-white/50 uppercase tracking-widest">{label}</label>
-      <div className={`flex items-center gap-3 bg-white/5 border rounded-xl px-4 py-3 transition-all duration-200 focus-within:border-amber-400/60 focus-within:bg-white/8 focus-within:shadow-lg focus-within:shadow-amber-400/5 ${error ? "border-rose-500/60" : "border-white/10"}`}>
+      <label htmlFor={id} className="text-xs font-medium text-white/50 uppercase tracking-widest">
+        {label}
+      </label>
+      <div
+        className={`flex items-center gap-3 bg-white/5 border rounded-xl px-4 py-3 transition-all duration-200 focus-within:border-amber-400/60 focus-within:bg-white/10 ${
+          error ? "border-rose-500/60" : "border-white/10"
+        }`}
+      >
         <span className="text-white/30 shrink-0">{icon}</span>
         <input
           id={id}
@@ -116,7 +138,7 @@ function InputField({ id, label, type = "text", placeholder, value, onChange, ic
           aria-invalid={!!error}
           aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined}
           autoComplete={autoComplete}
-          className="flex-1 bg-transparent text-sm text-white placeholder-white/20 outline-none font-light"
+          className="flex-1 min-w-0 bg-transparent text-sm text-white placeholder-white/20 outline-none font-light"
         />
         {rightSlot}
       </div>
@@ -132,13 +154,11 @@ export default function Register() {
   const [form, setForm] = useState({ name: "", username: "", email: "", password: "", confirm: "" });
   const [showPw, setShowPw] = useState(false);
   const [showCp, setShowCp] = useState(false);
-  const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const strength = getStrength(form.password);
   const navigate = useNavigate();
   const { setUser } = useAuth();
-
 
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
 
@@ -152,7 +172,6 @@ export default function Register() {
     if (!form.password) e.password = "Password is required";
     else if (form.password.length < 8) e.password = "Minimum 8 characters";
     if (form.confirm !== form.password) e.confirm = "Passwords don't match";
-    if (!agreed) e.terms = "Please accept the terms";
     return e;
   };
 
@@ -176,7 +195,6 @@ export default function Register() {
         password: form.password,
       });
 
-
       // optional success action
       setUser(response.data.user); // ← set the user in context first
       navigate("/homepage");
@@ -188,7 +206,6 @@ export default function Register() {
         password: "",
         confirm: "",
       });
-
     } catch (error) {
       console.error(error);
 
@@ -203,8 +220,13 @@ export default function Register() {
     }
   };
 
+  const strengthTextColor =
+    strength.score <= 1 ? "text-rose-400" :
+    strength.score === 2 ? "text-orange-400" :
+    strength.score === 3 ? "text-amber-400" : "text-green-400";
+
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white flex overflow-hidden" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+    <div className="min-h-screen bg-[#0a0a0a] text-white flex" style={{ fontFamily: "'DM Sans', sans-serif" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Fraunces:ital,wght@0,700;0,900;1,500;1,700&display=swap');
         .font-display { font-family: 'Fraunces', Georgia, serif; }
@@ -215,7 +237,7 @@ export default function Register() {
         .d1{ animation-delay:0.05s; } .d2{ animation-delay:0.10s; }
         .d3{ animation-delay:0.15s; } .d4{ animation-delay:0.20s; }
         .d5{ animation-delay:0.25s; } .d6{ animation-delay:0.30s; }
-        .d7{ animation-delay:0.35s; } .d8{ animation-delay:0.40s; }
+        .d7{ animation-delay:0.35s; }
         .gradient-text {
           background: linear-gradient(135deg,#f59e0b 0%,#f97316 50%,#ef4444 100%);
           background-size:200% 200%;
@@ -232,42 +254,26 @@ export default function Register() {
         ::-webkit-scrollbar { width:0; }
       `}</style>
 
-      {/* ── LEFT: IMAGE COLLAGE PANEL ── */}
-      <div className="hidden lg:flex flex-1 relative overflow-hidden flex-col justify-between p-10">
-        {/* Collage grid */}
-        <div className="absolute inset-0 grid grid-cols-2 grid-rows-3 gap-2 p-2 opacity-60">
-          {COLLAGE.map((c, i) => (
-            <div key={i} className={`relative overflow-hidden rounded-xl ${c.span}`}>
-              <img src={c.img} alt="" className="w-full h-full object-cover" loading="lazy" />
+      {/* ── LEFT: SHOWCASE PANEL ── */}
+      <aside className="hidden lg:flex flex-1 flex-col gap-8 p-10 xl:p-12 bg-gradient-to-b from-white/[0.03] to-transparent border-r border-white/10">
+        <Brand />
+
+        {/* Uniform 2×2 photo grid */}
+        <div className="flex-1 min-h-0 grid grid-cols-2 grid-rows-2 gap-4">
+          {COLLAGE.map((src, i) => (
+            <div key={i} className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5">
+              <img src={src} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
             </div>
           ))}
         </div>
 
-        {/* Gradient overlays */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/60 to-[#0a0a0a]/30" />
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent to-[#0a0a0a]" style={{ left: "70%" }} />
-
-        {/* Content over collage */}
-        <div className="relative z-10">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
-              <span className="text-black font-black text-xs">T</span>
-            </div>
-            <span className="font-display font-bold text-lg text-white">
-              Travel<span className="gradient-text">Together</span>
-            </span>
-          </div>
-        </div>
-
-        <div className="relative z-10">
-          <h2 className="font-display text-3xl font-black text-white leading-tight mb-8">
-            Join the world's <br />
-            <em className="italic gradient-text">fastest-growing</em><br />
-            travel community.
+        <div>
+          <h2 className="font-display text-3xl font-black text-white leading-tight mb-6">
+            Join the world's <em className="italic gradient-text">fastest-growing</em> travel community.
           </h2>
 
-          {/* Perks list */}
-          <ul className="flex flex-col gap-3">
+          <ul className="grid grid-cols-2 gap-x-6 gap-y-3">
             {PERKS.map((p) => (
               <li key={p} className="flex items-center gap-3">
                 <span className="w-5 h-5 rounded-full bg-amber-400/15 border border-amber-400/30 flex items-center justify-center shrink-0 text-amber-400">
@@ -278,12 +284,15 @@ export default function Register() {
             ))}
           </ul>
 
-          {/* Social proof */}
-          <div className="flex items-center gap-3 mt-8 pt-6 border-t border-white/8">
+          <div className="flex items-center gap-3 mt-6 pt-6 border-t border-white/10">
             <div className="flex -space-x-2">
-              {["47", "11", "32", "25", "8"].map((n) => (
-                <img key={n} src={`https://i.pravatar.cc/40?img=${n}`} alt=""
-                  className="w-8 h-8 rounded-full border-2 border-[#0a0a0a] object-cover" />
+              {AVATARS.map((n) => (
+                <img
+                  key={n}
+                  src={`https://i.pravatar.cc/40?img=${n}`}
+                  alt=""
+                  className="w-8 h-8 rounded-full border-2 border-[#0a0a0a] object-cover"
+                />
               ))}
             </div>
             <p className="text-xs text-white/40">
@@ -291,20 +300,14 @@ export default function Register() {
             </p>
           </div>
         </div>
-      </div>
+      </aside>
 
       {/* ── RIGHT: FORM PANEL ── */}
-      <div className="flex-1 flex flex-col justify-center px-8 md:px-12 lg:px-16 py-10 overflow-y-auto max-w-xl w-full mx-auto lg:mx-0">
-
+      <main className="flex-1 flex flex-col justify-center px-6 sm:px-10 lg:px-14 py-10 overflow-y-auto max-w-xl w-full mx-auto lg:mx-0">
         {/* Mobile logo */}
         <div className="anim-fade-up lg:hidden mb-8">
-          <Link to="/" className="flex items-center gap-2 w-fit">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
-              <span className="text-black font-black text-xs">T</span>
-            </div>
-            <span className="font-display font-bold text-lg text-white">
-              Travel<span className="gradient-text">Together</span>
-            </span>
+          <Link to="/" className="w-fit block">
+            <Brand />
           </Link>
         </div>
 
@@ -324,8 +327,13 @@ export default function Register() {
 
         {/* Google OAuth */}
         <div className="anim-fade-up d2 mb-5">
-          <button type="button"
-            className="w-full flex items-center justify-center gap-3 bg-white/5 border border-white/10 hover:bg-white/8 hover:border-white/20 text-sm text-white/80 font-medium py-3 rounded-xl transition-all duration-200">
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = "http://localhost:5000/api/auth/google";
+            }}
+            className="w-full flex items-center justify-center gap-3 bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 text-sm text-white/80 font-medium py-3 rounded-xl transition-all duration-200"
+          >
             <GoogleIcon />
             Sign up with Google
           </button>
@@ -333,41 +341,36 @@ export default function Register() {
 
         {/* Divider */}
         <div className="anim-fade-up d2 flex items-center gap-4 mb-5">
-          <span className="flex-1 h-px bg-white/8" />
+          <span className="flex-1 h-px bg-white/10" />
           <span className="text-xs text-white/25 uppercase tracking-widest">or</span>
-          <span className="flex-1 h-px bg-white/8" />
+          <span className="flex-1 h-px bg-white/10" />
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-
-          {/* Name + Username row */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="anim-fade-up d3">
-              <InputField
-                id="name"
-                label="Full Name"
-                placeholder="Jane Doe"
-                value={form.name}
-                onChange={set("name")}
-                icon={<UserIcon />}
-                error={errors.name}
-                autoComplete="name"
-              />
-            </div>
-            <div className="anim-fade-up d3">
-              <InputField
-                id="username"
-                label="Username"
-                placeholder="jane.wanders"
-                value={form.username}
-                onChange={set("username")}
-                icon={<AtIcon />}
-                error={errors.username}
-                hint="No spaces"
-                autoComplete="username"
-              />
-            </div>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
+          {/* Name + Username */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 anim-fade-up d3">
+            <InputField
+              id="name"
+              label="Full Name"
+              placeholder="Jane Doe"
+              value={form.name}
+              onChange={set("name")}
+              icon={<UserIcon />}
+              error={errors.name}
+              autoComplete="name"
+            />
+            <InputField
+              id="username"
+              label="Username"
+              placeholder="jane.wanders"
+              value={form.username}
+              onChange={set("username")}
+              icon={<AtIcon />}
+              error={errors.username}
+              hint="No spaces"
+              autoComplete="username"
+            />
           </div>
 
           {/* Email */}
@@ -397,27 +400,32 @@ export default function Register() {
               icon={<LockIcon />}
               error={errors.password}
               rightSlot={
-                <button type="button" onClick={() => setShowPw(!showPw)}
-                  className="text-white/30 hover:text-white/70 transition-colors shrink-0" aria-label={showPw ? 'Hide password' : 'Show password'}>
+                <button
+                  type="button"
+                  onClick={() => setShowPw(!showPw)}
+                  className="text-white/30 hover:text-white/70 transition-colors shrink-0"
+                  aria-label={showPw ? "Hide password" : "Show password"}
+                >
                   <EyeIcon open={showPw} />
                 </button>
               }
               autoComplete="new-password"
             />
-            {/* Strength bar */}
             {form.password && (
               <div className="flex items-center gap-2 mt-1">
                 <div className="flex-1 flex gap-1">
                   {[1, 2, 3, 4].map((i) => (
-                    <div key={i}
-                      className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= strength.score ? strength.color : "bg-white/10"}`}
+                    <div
+                      key={i}
+                      className={`h-1 flex-1 rounded-full transition-all duration-300 ${
+                        i <= strength.score ? strength.color : "bg-white/10"
+                      }`}
                     />
                   ))}
                 </div>
-                <span className={`text-xs font-medium transition-colors ${strength.score <= 1 ? "text-rose-400" :
-                    strength.score === 2 ? "text-orange-400" :
-                      strength.score === 3 ? "text-amber-400" : "text-green-400"
-                  }`}>{strength.label}</span>
+                <span className={`text-xs font-medium transition-colors ${strengthTextColor}`}>
+                  {strength.label}
+                </span>
               </div>
             )}
           </div>
@@ -434,8 +442,12 @@ export default function Register() {
               icon={<LockIcon />}
               error={errors.confirm}
               rightSlot={
-                <button type="button" onClick={() => setShowCp(!showCp)}
-                  className="text-white/30 hover:text-white/70 transition-colors shrink-0" aria-label={showCp ? 'Hide confirmation' : 'Show confirmation'}>
+                <button
+                  type="button"
+                  onClick={() => setShowCp(!showCp)}
+                  className="text-white/30 hover:text-white/70 transition-colors shrink-0"
+                  aria-label={showCp ? "Hide confirmation" : "Show confirmation"}
+                >
                   <EyeIcon open={showCp} />
                 </button>
               }
@@ -443,29 +455,8 @@ export default function Register() {
             />
           </div>
 
-          {/* Terms */}
-          <div className="anim-fade-up d7">
-            <label className="flex items-start gap-3 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={agreed}
-                onChange={(e) => setAgreed(e.target.checked)}
-                className={`mt-0.5 w-4 h-4 rounded border shrink-0 transition-all duration-200 focus:ring-2 focus:ring-amber-300 ${agreed ? "bg-amber-400 border-amber-400" : "border-white/20 bg-white/5 group-hover:border-white/40"
-                  }`}
-                aria-required={true}
-              />
-              <span className="text-xs text-white/40 leading-relaxed">
-                I agree to the{" "}
-                <a href="#" className="text-amber-400 hover:text-amber-300">Terms of Service</a>
-                {" "}and{" "}
-                <a href="#" className="text-amber-400 hover:text-amber-300">Privacy Policy</a>
-              </span>
-            </label>
-            {errors.terms && <p className="text-xs text-rose-400 mt-1">{errors.terms}</p>}
-          </div>
-
           {/* Submit */}
-          <div className="anim-fade-up d8 mt-1">
+          <div className="anim-fade-up d7 mt-2">
             <button
               type="submit"
               disabled={loading}
@@ -480,16 +471,18 @@ export default function Register() {
                   Creating your account…
                 </>
               ) : (
-                <>Create my account <ArrowRight /></>
+                <>
+                  Create my account <ArrowRight />
+                </>
               )}
             </button>
           </div>
         </form>
 
-        <p className="anim-fade-up text-xs text-white/20 text-center mt-8">
+        <p className="anim-fade-up d7 text-xs text-white/20 text-center mt-8">
           © 2025 TravelTogether · Free forever · No credit card needed
         </p>
-      </div>
+      </main>
     </div>
   );
 }

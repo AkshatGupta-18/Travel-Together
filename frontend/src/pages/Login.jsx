@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import api from "../api/axios";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { FcGoogle } from "react-icons/fc";
 
 
 
@@ -208,10 +209,13 @@ export default function Login() {
         <div className="anim-fade-up d2 mb-6">
           <button
             type="button"
+            onClick={() => {
+              window.location.href = "http://localhost:5000/api/auth/google";
+            }}
             className="w-full flex items-center justify-center gap-3 bg-white/5 border border-white/10 hover:bg-white/8 hover:border-white/20 text-sm text-white/80 font-medium py-3 rounded-xl transition-all duration-200"
           >
-            <GoogleIcon />
-            Continue with Google
+            <FcGoogle className="w-5 h-5" />
+            Login with Google
           </button>
         </div>
 

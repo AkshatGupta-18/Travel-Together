@@ -21,10 +21,10 @@
     }
   });
 
-  /* ── multer: hold avatar in memory (max 4 MB) ── */
+  /* ── multer: hold avatar in memory (max 5 MB) ── */
   const upload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: 4 * 1024 * 1024 },
+    limits: { fileSize: 5 * 1024 * 1024 },
     fileFilter: (_, file, cb) =>
       file.mimetype.startsWith("image/") ? cb(null, true) : cb(new Error("Images only")),
   });

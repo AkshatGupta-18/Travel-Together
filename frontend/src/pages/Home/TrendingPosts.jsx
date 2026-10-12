@@ -57,9 +57,9 @@ function PostSkeleton() {
 export default function TrendingPosts() {
   const navigate = useNavigate();
 
-  const [posts, setPosts]       = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState(null);
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [likedPosts, setLikedPosts] = useState(new Set());
   // Track optimistic like counts: { [postId]: delta }
   const [likeDelta, setLikeDelta] = useState({});
@@ -72,7 +72,16 @@ export default function TrendingPosts() {
         const sorted = [...res.data].sort(
           (a, b) => (b.likes?.length ?? 0) - (a.likes?.length ?? 0)
         );
+
         setPosts(sorted);
+
+        const initialLikedPosts = new Set(
+          sorted
+            .filter((post) => post.liked)
+            .map((post) => post._id)
+        );
+
+        setLikedPosts(initialLikedPosts);
       })
       .catch((err) => {
         console.error("Failed to load posts", err);
@@ -96,7 +105,7 @@ export default function TrendingPosts() {
     }));
 
     try {
-      await axios.post(
+      await axios.patch(
         `http://localhost:5000/api/posts/${postId}/like`,
         {},
         { withCredentials: true }
@@ -121,9 +130,9 @@ export default function TrendingPosts() {
   const timeAgo = (dateStr) => {
     if (!dateStr) return "";
     const diff = (Date.now() - new Date(dateStr)) / 1000;
-    if (diff < 60)   return "just now";
+    if (diff < 60) return "just now";
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    if (diff < 86400)return `${Math.floor(diff / 3600)}h ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
     return `${Math.floor(diff / 86400)}d ago`;
   };
 
@@ -173,12 +182,12 @@ export default function TrendingPosts() {
   return (
     <div className="flex flex-col gap-5">
       {posts.map((post) => {
-        const liked      = likedPosts.has(post._id);
-        const baseCount  = post.likes?.length ?? 0;
-        const likeCount  = baseCount + (likeDelta[post._id] ?? 0);
-        const thumb      = post.photos?.[0];
+        const liked = likedPosts.has(post._id);
+        const baseCount = post.likes?.length ?? 0;
+        const likeCount = baseCount + (likeDelta[post._id] ?? 0);
+        const thumb = post.photos?.[0];
         const hasMultiple = post.photos?.length > 1;
-        const user        = post.user; // populated object: { _id, name, username, avatar }
+        const user = post.user; // populated object: { _id, name, username, avatar }
 
         return (
           <div key={post._id} className="card overflow-hidden">
@@ -224,9 +233,7 @@ export default function TrendingPosts() {
                 </p>
               </div>
 
-              <button className="text-xs text-amber-400/70 hover:text-amber-400 border border-amber-400/20 hover:border-amber-400/40 px-3 py-1.5 rounded-full transition-all shrink-0">
-                Follow
-              </button>
+              
             </div>
 
             {/* Image */}

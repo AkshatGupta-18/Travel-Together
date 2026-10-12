@@ -24,15 +24,16 @@ const MoreIcon = () => (
 const TYPING_STOP_DELAY = 2000;
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
-// conversationId: mongo _id of the Conversation doc (passed in from UserProfilePage)
+// conversationId: mongo _id of the Conversation doc
 // currentUserId: logged-in user's id, needed to tell fromMe apart when messages come from the server
-export default function ChatWindow({ profileUser, conversationId, currentUserId, onClose }) {
+// embedded: when true, fills its parent (used inside a drawer) instead of being a sticky side column
+export default function ChatWindow({ profileUser, conversationId, currentUserId, onClose, embedded = false }) {
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState("");
-  const [isOtherTyping, setIsOtherTyping] = useState(false); // NEW
+  const [isOtherTyping, setIsOtherTyping] = useState(false);
   const scrollRef = useRef(null);
-  const socketRef = useRef(null);       // NEW — holds the socket instance
-  const typingTimeoutRef = useRef(null); // NEW — debounce timer for stop_typing
+  const socketRef = useRef(null);        // holds the socket instance
+  const typingTimeoutRef = useRef(null); // debounce timer for stop_typing
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -57,21 +58,42 @@ export default function ChatWindow({ profileUser, conversationId, currentUserId,
     loadMessages();
   }, [conversationId]);
 
-  // NEW — open socket connection, join the conversation room, listen for typing events
+  // open socket connection, join the conversation room, listen for messages + typing events
   useEffect(() => {
     if (!conversationId) return;
 
-    const socket = io("http://localhost:5000", { withCredentials: true });
+    const socket = io("http://localhost:5000", {
+      withCredentials: true,
+    });
+
     socketRef.current = socket;
 
+    // Join this conversation's room
     socket.emit("join_conversation", conversationId);
 
+    // Receive new real-time messages
+    socket.on("new_message", (message) => {
+      setMessages((prev) => {
+        // Prevent duplicate messages
+        if (prev.some((msg) => msg._id === message._id)) {
+          return prev;
+        }
+
+        return [...prev, message];
+      });
+    });
+
+    // Typing indicator
     socket.on("user_typing", ({ userId }) => {
-      if (userId !== currentUserId) setIsOtherTyping(true);
+      if (userId !== currentUserId) {
+        setIsOtherTyping(true);
+      }
     });
 
     socket.on("user_stop_typing", ({ userId }) => {
-      if (userId !== currentUserId) setIsOtherTyping(false);
+      if (userId !== currentUserId) {
+        setIsOtherTyping(false);
+      }
     });
 
     return () => {
@@ -81,7 +103,7 @@ export default function ChatWindow({ profileUser, conversationId, currentUserId,
     };
   }, [conversationId, currentUserId]);
 
-  // NEW — fires on every keystroke; emits "typing", then auto-emits "stop_typing" after a pause
+  // fires on every keystroke; emits "typing", then auto-emits "stop_typing" after a pause
   const handleDraftChange = (e) => {
     setDraft(e.target.value);
 
@@ -95,48 +117,28 @@ export default function ChatWindow({ profileUser, conversationId, currentUserId,
     }, TYPING_STOP_DELAY);
   };
 
-  // TODO: swap fetch for socket.io emit once real-time message delivery is wired
-  const handleSend = async () => {
+  const handleSend = () => {
     const text = draft.trim();
-    if (!text || !conversationId) return;
 
+    if (!text || !conversationId || !socketRef.current) return;
+
+    // Clear input immediately
     setDraft("");
 
-    // stop the typing indicator immediately once a message is actually sent
+    // Stop typing indicator
     clearTimeout(typingTimeoutRef.current);
-    socketRef.current?.emit("stop_typing", { conversationId, userId: currentUserId });
 
-    // optimistic message — shows immediately while request is in flight
-    const tempId = `temp-${Date.now()}`;
-    const optimisticMsg = {
-      _id: tempId,
-      sender: currentUserId,
+    socketRef.current.emit("stop_typing", {
+      conversationId,
+      userId: currentUserId,
+    });
+
+    // Send message through Socket.IO
+    socketRef.current.emit("send_message", {
+      conversationId,
+      senderId: currentUserId,
       text,
-      createdAt: new Date().toISOString(),
-    };
-    setMessages(prev => [...prev, optimisticMsg]);
-
-    try {
-      const res = await fetch("http://localhost:5000/api/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include", // sends your auth cookie
-        body: JSON.stringify({ conversationId, text }),
-      });
-
-      if (!res.ok) throw new Error("Failed to send");
-
-      const savedMsg = await res.json();
-
-      // replace the optimistic message with the real one from the server
-      setMessages(prev =>
-        prev.map(m => (m._id === tempId ? savedMsg : m))
-      );
-    } catch (err) {
-      console.error("Send failed:", err);
-      // roll back the optimistic message on failure
-      setMessages(prev => prev.filter(m => m._id !== tempId));
-    }
+    });
   };
 
   const handleKeyDown = (e) => {
@@ -150,18 +152,44 @@ export default function ChatWindow({ profileUser, conversationId, currentUserId,
     <div
       className="tt-chat-panel tt-font-body"
       style={{
-        width: 380,
-        minWidth: 380,
-        height: "100vh",
-        position: "sticky",
+        width: embedded ? "100%" : 380,
+        minWidth: embedded ? 0 : 380,
+        height: embedded ? "100%" : "100vh",
+        position: embedded ? "relative" : "sticky",
         top: 0,
         display: "flex",
         flexDirection: "column",
         background: "var(--tt-surface)",
-        borderLeft: "1px solid var(--tt-border)",
+        color: "var(--tt-text)",
+        fontFamily: "'DM Sans', sans-serif",
+        borderLeft: embedded ? "none" : "1px solid var(--tt-border)",
       }}
     >
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap');
+
+        /* Self-contained tokens so the chat looks right on any page */
+        .tt-chat-panel {
+          --tt-surface: #101012;
+          --tt-surface-2: #16161a;
+          --tt-border: rgba(255,255,255,0.09);
+          --tt-border-soft: rgba(255,255,255,0.05);
+          --tt-text: #f5f5f4;
+          --tt-text-dim: rgba(245,245,244,0.55);
+          --tt-text-faint: rgba(245,245,244,0.30);
+          --tt-accent-1: #f59e0b;
+          --tt-accent-2: #f97316;
+          --tt-accent-3: #ef4444;
+          --tt-radius-md: 14px;
+          --tt-radius-sm: 10px;
+        }
+        .tt-chat-panel .tt-avatar-ring-sm {
+          background: linear-gradient(135deg, var(--tt-accent-1), var(--tt-accent-2), var(--tt-accent-3));
+          padding: 2px;
+          border-radius: 9999px;
+          display: inline-block;
+        }
+
         @keyframes tt-chat-slide-in {
           from { transform: translateX(24px); opacity: 0; }
           to   { transform: translateX(0); opacity: 1; }
@@ -177,7 +205,7 @@ export default function ChatWindow({ profileUser, conversationId, currentUserId,
         .tt-chat-input::placeholder { color: var(--tt-text-faint); }
         .tt-chat-input:focus { outline: none; }
 
-        /* NEW — typing dots */
+        /* typing dots */
         @keyframes tt-typing-bounce {
           0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
           30% { transform: translateY(-4px); opacity: 1; }
@@ -211,11 +239,17 @@ export default function ChatWindow({ profileUser, conversationId, currentUserId,
               style={{ width: 38, height: 38, borderRadius: "9999px", objectFit: "cover", display: "block" }}
             />
           </div>
+
           <div>
-            <p className="text-sm font-semibold leading-tight">{profileUser?.name || "Traveler"}</p>
-            {/* NEW — shows "typing…" in place of "Active now" while the other person is typing */}
+            <p className="text-sm font-semibold leading-tight">
+              {profileUser?.name || "Traveler"}
+            </p>
+
             {isOtherTyping ? (
-              <p className="text-xs flex items-center gap-1.5" style={{ color: "var(--tt-accent-1)" }}>
+              <p
+                className="text-xs flex items-center gap-1.5"
+                style={{ color: "var(--tt-accent-1)" }}
+              >
                 typing
                 <span className="flex items-center gap-0.5">
                   <span className="tt-typing-dot" />
@@ -224,12 +258,11 @@ export default function ChatWindow({ profileUser, conversationId, currentUserId,
                 </span>
               </p>
             ) : (
-              <p className="text-xs flex items-center gap-1.5" style={{ color: "var(--tt-text-faint)" }}>
-                <span
-                  className="rounded-full"
-                  style={{ width: 6, height: 6, background: "#22c55e", display: "inline-block" }}
-                />
-                Active now
+              <p
+                className="text-xs"
+                style={{ color: "var(--tt-text-faint)" }}
+              >
+                buddy
               </p>
             )}
           </div>
@@ -260,7 +293,7 @@ export default function ChatWindow({ profileUser, conversationId, currentUserId,
       <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto"
-        style={{ padding: "18px 16px", display: "flex", flexDirection: "column", gap: 10 }}
+        style={{ padding: "18px 16px", display: "flex", flexDirection: "column", gap: 10, minHeight: 0 }}
       >
         {messages.length === 0 && (
           <p className="text-xs text-center mt-6" style={{ color: "var(--tt-text-faint)" }}>

@@ -19,28 +19,50 @@ const storage = new CloudinaryStorage({
 
 const upload = multer({ storage });
 
-// ─── POST /api/posts ──────────────────────────────────────────────────────────
 // GET /api/posts — all posts except the logged-in user's, sorted by likes desc
 router.get("/", protect, async (req, res) => {
   try {
-    const posts = await Post.find({ user: { $ne: req.user._id } })
+    const posts = await Post.find({
+      user: { $ne: req.user._id },
+    })
       .populate("user", "name username avatar")
       .sort({ createdAt: -1 });
 
-    res.json(posts);
+    const postsWithLikeStatus = posts.map((post) => ({
+      ...post.toObject(),
+      liked: post.likes.some(
+        (id) => id.toString() === req.user._id.toString()
+      ),
+    }));
+
+    res.json(postsWithLikeStatus);
   } catch (err) {
     console.error("Fetch all posts error:", err);
     res.status(500).json({ message: "Failed to fetch posts" });
   }
 });
 
-// GET /api/posts/user/:userId  — all posts by a user
+
+// GET /api/posts/user/:userId — get posts of a specific user
 router.get("/user/:userId", protect, async (req, res) => {
   try {
-    const posts = await Post.find({ user: req.params.userId }).sort({ createdAt: -1 });
-    res.json(posts);
+    const posts = await Post.find({
+      user: req.params.userId,
+    })
+      .populate("user", "name username avatar")
+      .sort({ createdAt: -1 });
+
+    const postsWithLikeStatus = posts.map((post) => ({
+      ...post.toObject(),
+      liked: post.likes.some(
+        (id) => id.toString() === req.user._id.toString()
+      ),
+    }));
+
+    res.json(postsWithLikeStatus);
   } catch (err) {
-    res.status(500).json({ message: "Server error" });
+    console.error("Fetch user posts error:", err);
+    res.status(500).json({ message: "Failed to fetch user posts" });
   }
 });
 
