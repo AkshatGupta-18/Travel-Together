@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import axios from "axios"
+import api from "../../api/axios"
 
 // ─── ICONS ────────────────────────────────────────────────────────────────────
 const HeartIcon = ({ filled }) => (
@@ -96,8 +96,8 @@ export default function PostModal({ post, user, onClose, onPrev, onNext, hasPrev
   setDeleteError(null);
 
   try {
-    await axios.delete(
-      `http://localhost:5000/api/posts/${post._id}`,
+    await api.delete(
+      `/posts/${post._id}`,
       {
         withCredentials: true
       }

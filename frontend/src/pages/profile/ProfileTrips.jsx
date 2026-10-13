@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../../api/axios"
 import ImageLightbox from "../../components/ImageLightbox";
 
 // ─── ICONS ────────────────────────────────────────────────────────────────────
@@ -182,7 +182,7 @@ function TripCard({ trip, onDeleted }) {
     setDeleteError(null);
 
     try {
-      await axios.delete(`http://localhost:5000/api/trips/${trip._id}`, { withCredentials: true });
+      await api.delete(`/trips/${trip._id}`, { withCredentials: true });
       onDeleted?.(trip._id);
     } catch (err) {
       setDeleteError(err.response?.data?.message || "Failed to delete trip");
@@ -344,8 +344,8 @@ export default function ProfileTrips() {
   const loadTrips = useCallback(() => {
     setLoading(true);
     setError(null);
-    axios
-      .get("http://localhost:5000/api/trips/my-trips", { withCredentials: true })
+    api
+      .get("/trips/my-trips", { withCredentials: true })
       .then((res) => setTrips(res.data.trips ?? []))
       .catch((err) => {
         console.error("Failed to load trips", err);

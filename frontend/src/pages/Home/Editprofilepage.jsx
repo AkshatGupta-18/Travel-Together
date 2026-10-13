@@ -5,6 +5,7 @@
 import { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import {useNavigate} from "react-router-dom";
+import api from "../../api/axios"
 
 
 
@@ -150,8 +151,8 @@ export default function EditProfilePage() {
 useEffect(() => {
   const fetchUser = async () => {
     try {
-      const res = await axios.get(
-        "http://localhost:5000/api/users/me",
+      const res = await api.get(
+        "/users/me",
         {
           withCredentials: true, 
         }
@@ -244,7 +245,7 @@ const handleSave = async () => {
       fd.append("avatar", fileInputRef.current.files[0]);
     }
 
-    await axios.patch("http://localhost:5000/api/users/me", fd, {
+    await api.patch("/users/me", fd, {
       withCredentials: true,
       headers: { "Content-Type": "multipart/form-data" },
     });

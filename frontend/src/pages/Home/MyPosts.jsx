@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-
+import api from "../../api/axios"
 // ─── ICONS ────────────────────────────────────────────────────────────────────
 const HeartIcon = ({ filled }) => (
   <svg
@@ -74,8 +73,8 @@ export default function MyPosts({ currentUser }) {
   const [likeDelta, setLikeDelta] = useState({});
 
   useEffect(() => {
-    axios
-      .get("http://localhost:5000/api/posts/mine", { withCredentials: true })
+    api
+      .get("/posts/mine", { withCredentials: true })
       .then((res) => {
         // Already sorted newest-first by the backend (createdAt: -1)
         setPosts(res.data);
@@ -102,8 +101,8 @@ export default function MyPosts({ currentUser }) {
     }));
 
     try {
-      await axios.post(
-        `http://localhost:5000/api/posts/${postId}/like`,
+      await api.post(
+        `/posts/${postId}/like`,
         {},
         { withCredentials: true }
       );

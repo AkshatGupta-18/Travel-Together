@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { io } from "socket.io-client";
+import api from "../../api/axios"
 
 // ─── ICONS ────────────────────────────────────────────────────────────────────
 const CloseIcon = () => (
@@ -45,9 +46,8 @@ export default function ChatWindow({ profileUser, conversationId, currentUserId,
 
     const loadMessages = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/api/messages/${conversationId}`, {
-          credentials: "include",
-        });
+        const res = await api.get(`/messages/${conversationId}`);
+        setMessages(res.data);
         const data = await res.json();
         setMessages(data);
       } catch (err) {
@@ -62,7 +62,7 @@ export default function ChatWindow({ profileUser, conversationId, currentUserId,
   useEffect(() => {
     if (!conversationId) return;
 
-    const socket = io("http://localhost:5000", {
+    const socket = io(import.meta.env.VITE_API_URL, {
       withCredentials: true,
     });
 

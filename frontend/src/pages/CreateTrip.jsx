@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from "axios";
+import api from "../api/axios"
 import ImageLightbox from '../components/ImageLightbox';
 
 export default function CreateTrip() {
@@ -94,8 +94,8 @@ export default function CreateTrip() {
         formData.append("coverImage", coverImage);
       }
 
-      const response = await axios.post(
-        "http://localhost:5000/api/trips",
+      const response = await api.post(
+        "/trips",
         formData,
         {
           withCredentials: true,

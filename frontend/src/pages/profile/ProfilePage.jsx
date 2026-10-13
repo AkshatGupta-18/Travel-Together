@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../../api/axios"
 import Navbar from "../Home/Navbar";
 import PostModal from "./PostModal";
 import ProfileTrips from "./ProfileTrips";
@@ -80,7 +80,7 @@ export default function ProfilePage() {
 
 
   useEffect(() => {
-    axios.get("http://localhost:5000/api/users/me", { withCredentials: true })
+    api.get("/users/me", { withCredentials: true })
       .then((res) => {
         const d = res.data;
         setUser({
@@ -96,7 +96,7 @@ export default function ProfilePage() {
         });
 
         // seed which of these posts the logged-in user has already liked
-        axios.get("http://localhost:5000/api/posts/mine", { withCredentials: true })
+        api.get("/posts/mine", { withCredentials: true })
           .then((postsRes) => {
             const liked = postsRes.data
               .filter(p => p.likes?.includes(d._id))
@@ -129,8 +129,8 @@ export default function ProfilePage() {
     ));
 
     try {
-      const res = await axios.patch(
-        `http://localhost:5000/api/posts/${postId}/like`,
+      const res = await api.patch(
+        `/posts/${postId}/like`,
         {},
         { withCredentials: true }
       );

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../../api/axios"
 import PostsSection from "./PostsSection";
 import ChatWindow from "./ChatWindow";
 
@@ -42,9 +42,9 @@ export default function UserProfilePage() {
   useEffect(() => {
     setLoading(true);
     Promise.all([
-      axios.get("http://localhost:5000/api/users/me", { withCredentials: true }),
-      axios.get(`http://localhost:5000/api/users/${userId}`, { withCredentials: true }),
-      axios.get(`http://localhost:5000/api/posts/user/${userId}`, { withCredentials: true }),
+      api.get("/users/me", { withCredentials: true }),
+      api.get(`/users/${userId}`, { withCredentials: true }),
+      api.get(`/posts/user/${userId}`, { withCredentials: true }),
     ])
       .then(([meRes, userRes, postsRes]) => {
         const currentUserId = meRes.data._id;
@@ -75,8 +75,8 @@ export default function UserProfilePage() {
   // NEW — find or create a conversation with this profile's user, then open the chat panel
   const handleOpenChat = async () => {
     try {
-      const res = await axios.post(
-        "http://localhost:5000/api/conversations/find-or-create",
+      const res = await api.post(
+        "/conversations/find-or-create",
         { userId: profileUser._id },
         { withCredentials: true }
       );
@@ -102,8 +102,8 @@ export default function UserProfilePage() {
     ));
 
     try {
-      const res = await axios.patch(
-        `http://localhost:5000/api/posts/${postId}/like`,
+      const res = await api.patch(
+        `/posts/${postId}/like`,
         {},
         { withCredentials: true }
       );

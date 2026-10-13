@@ -1,6 +1,6 @@
 // ProfileSidebar.jsx
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../../api/axios"
 import { useNavigate } from "react-router-dom";
 import {  Link } from "react-router-dom";
 
@@ -33,8 +33,8 @@ export default function ProfileSidebar() {
 
   const handleLogout = async function () {
   try {
-    await axios.post(
-      "http://localhost:5000/api/auth/logout",
+    await api.post(
+      "/auth/logout",
       {},
       { withCredentials: true }
     );
@@ -46,7 +46,7 @@ export default function ProfileSidebar() {
 };
 
   useEffect(() => {
-    axios.get("http://localhost:5000/api/users/me", { withCredentials: true })
+   api.get("/users/me", { withCredentials: true })
       .then(res => {
         const d = res.data;
         setUser({

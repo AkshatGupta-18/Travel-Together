@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-
+import api from "../../api/axios"
 // ─── ICONS ────────────────────────────────────────────────────────────────────
 const HeartIcon = ({ filled }) => (
   <svg
@@ -65,8 +64,8 @@ export default function TrendingPosts() {
   const [likeDelta, setLikeDelta] = useState({});
 
   useEffect(() => {
-    axios
-      .get("http://localhost:5000/api/posts", { withCredentials: true })
+    api
+      .get("/posts", { withCredentials: true })
       .then((res) => {
         // Sort by likes desc so genuinely "trending" posts surface first
         const sorted = [...res.data].sort(
@@ -105,8 +104,8 @@ export default function TrendingPosts() {
     }));
 
     try {
-      await axios.patch(
-        `http://localhost:5000/api/posts/${postId}/like`,
+      await api.patch(
+        `/posts/${postId}/like`,
         {},
         { withCredentials: true }
       );

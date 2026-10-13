@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar";
-import axios from "axios";
+import api from "../../api/axios"
 
 // ─── ICONS ────────────────────────────────────────────────────────────────────
 const ImageIcon = () => (
@@ -90,7 +90,7 @@ export default function CreatePost() {
   const addMoreInputRef = useRef();
 
   useEffect(() => {
-    axios.get("http://localhost:5000/api/users/me", { withCredentials: true })
+    api.get("/users/me", { withCredentials: true })
       .then(res => {
         const d = res.data;
         setUser({
@@ -158,7 +158,7 @@ export default function CreatePost() {
       formData.append("audience", audience);
       photos.forEach(p => formData.append("photos", p.file));
 
-      await axios.post("http://localhost:5000/api/posts", formData, {
+      await api.post("/posts", formData, {
         withCredentials: true,
         headers: { "Content-Type": "multipart/form-data" },
       });
