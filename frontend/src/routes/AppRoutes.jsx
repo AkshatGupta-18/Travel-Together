@@ -7,7 +7,7 @@ import Landing from "../pages/landing/Landing";
 import Login from "../pages/Login";
 import Register from "../pages/Register";
 import Homepage from "../pages/Home/Homepage";
-import CreatePost from "../pages/Home/createPost";
+import CreatePost from "../pages/Home/CreatePost";
 import ProfilePage from "../pages/profile/ProfilePage";
 import UserProfilePage from "../pages/profile/UserProfilePage";
 import CreateTrip from "../pages/CreateTrip";
